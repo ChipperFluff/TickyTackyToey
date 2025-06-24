@@ -1,0 +1,7 @@
+#!/bin/bash
+stty -icanon -echo
+trap "stty sane" EXIT
+
+mkdir -p out
+javac -d out Main.java || exit 1
+java -cp out Main
