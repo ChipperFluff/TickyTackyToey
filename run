@@ -3,5 +3,10 @@ stty -icanon -echo
 trap "stty sane" EXIT
 
 mkdir -p out
-javac -d out Main.java || exit 1
+
+# Compile using javac
+find src -name "*.java" > sources.txt
+javac -Xlint:none -d out -cp src @sources.txt Main.java || exit 1
+
+# Run
 java -cp out Main

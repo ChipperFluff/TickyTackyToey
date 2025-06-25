@@ -7,8 +7,9 @@ import java.io.PrintStream;
 public abstract class Console {
     protected InputStream in = System.in;
     protected PrintStream out = System.out;
-    private boolean active = true;
+    protected TerminalSize size = new TerminalSize();
 
+    private boolean active = true;
     private static final String BLACK_TEXT = "\u001B[30m";
     private static final String WHITE_BG = "\u001B[47m";
     private static final String RESET = "\u001B[0m";
@@ -90,6 +91,7 @@ public abstract class Console {
 
     public void run() {
        while (active) {
+            size.updateTerminalSize();
             clear();
             draw();
             parseInput();
