@@ -9,7 +9,7 @@ public class TerminalSize {
 
     public void updateTerminalSize() {
         try {
-            Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "stty size < /dev/tty"});
+            Process process = java.lang.Runtime.getRuntime().exec(new String[]{"sh", "-c", "stty size < /dev/tty"});
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line = reader.readLine();
 
