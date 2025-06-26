@@ -5,11 +5,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-public abstract class Console {
+public abstract class Runtime {
     protected InputStream in = System.in;
     protected PrintStream out = System.out;
     protected TerminalSize size = new TerminalSize();
     protected int[][] display;
+
+    protected Logger logger = new Logger();
 
     private boolean active = true;
     private static final String BLACK_TEXT = "\u001B[30m";
@@ -21,7 +23,7 @@ public abstract class Console {
     public static final String LEFT = "LEFT";
     public static final String RIGHT = "RIGHT";
 
-    public Console() {
+    public Runtime() {
         if (!System.getProperty("skipConsoleInit", "false").equals("true")) {
             try {
                 String[] cmd = {
@@ -35,7 +37,9 @@ public abstract class Console {
                     "Main"
                 };
 
-                Runtime.getRuntime().exec(cmd);
+                java.lang.Runtime.getRuntime().exec(cmd);
+                logger.log("Spawned new terminal for runtime");
+                
 
                 // Silence logs in the current console
                 System.setOut(new PrintStream(OutputStream.nullOutputStream()));
@@ -71,7 +75,7 @@ public abstract class Console {
     abstract protected void onKeyPress(int key, boolean isArrowKey);
     abstract protected void draw();
 
-    private void checkDisplay() {
+    protected void checkDisplay() {
         final int CONSOLE_WIDTH = size.width;
         final int CONSOLE_HEIGHT = size.height;
 
@@ -87,7 +91,22 @@ public abstract class Console {
         }
     }
 
-    private boolean parseArrowKeys(int first) {
+    protected void clearDisplay() {
+        for (int i = 0; i < display.length; i++) {
+            for (int j = 0; j < display[i].length; j++) {
+                display[i][j] = ' ';
+            }
+        }
+    }
+
+    protected void putString(int row, int col, String text) {
+        if (display == null) return;
+        for (int i = 0; i < text.length() && col + i < display[row].length; i++) {
+            display[row][col + i] = text.charAt(i);
+        }
+    }
+
+    protected boolean parseArrowKeys(int first) {
         if (first != 27) {
             return false;
         }
@@ -125,7 +144,7 @@ public abstract class Console {
         return true;
     }
 
-    private void parseInput() {
+    protected void parseInput() {
         int input;
 
         try {
@@ -138,7 +157,7 @@ public abstract class Console {
         onKeyPress(input, arrowParseSuccess);
     }
 
-    private void render() {
+    protected void render() {
         clear();
         draw();
 
@@ -152,12 +171,13 @@ public abstract class Console {
     }
 
     public void run() {
-       while (active) {
+        logger.log("Runtime started");
+        while (active) {
             size.updateTerminalSize();
             checkDisplay();
             render();
             parseInput();
-       }
-            
+        }
+        logger.log("Runtime stopped");
     }
 }
