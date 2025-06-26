@@ -2,7 +2,6 @@ package src;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 public abstract class Console {
@@ -10,6 +9,8 @@ public abstract class Console {
     protected PrintStream out = System.out;
     protected TerminalSize size = new TerminalSize();
     protected int[][] display;
+
+    protected Logger logger;
 
     private boolean active = true;
     private static final String BLACK_TEXT = "\u001B[30m";
@@ -22,33 +23,10 @@ public abstract class Console {
     public static final String RIGHT = "RIGHT";
 
     public Console() {
-        if (!System.getProperty("skipConsoleInit", "false").equals("true")) {
-            try {
-                String[] cmd = {
-                    "gnome-terminal",
-                    "--window-with-profile=TinyFont",
-                    "--",
-                    "java",
-                    "-DskipConsoleInit=true",
-                    "-cp",
-                    System.getProperty("java.class.path"),
-                    "Main"
-                };
+    }
 
-                Runtime.getRuntime().exec(cmd);
-
-                // Silence logs in the current console
-                System.setOut(new PrintStream(OutputStream.nullOutputStream()));
-                System.setErr(new PrintStream(OutputStream.nullOutputStream()));
-
-                System.exit(0);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Press Enter to exit...");
-                try { System.in.read(); } catch (IOException ex) {}
-                System.exit(1);
-            }
-        }
+    void setLogger(Logger logger) {
+        this.logger = logger;
     }
 
 
@@ -71,7 +49,7 @@ public abstract class Console {
     abstract protected void onKeyPress(int key, boolean isArrowKey);
     abstract protected void draw();
 
-    private void checkDisplay() {
+    protected void checkDisplay() {
         final int CONSOLE_WIDTH = size.width;
         final int CONSOLE_HEIGHT = size.height;
 
@@ -84,6 +62,22 @@ public abstract class Console {
             for (int j = 0; j < CONSOLE_WIDTH; j++) {
             display[i][j] = 99; // 32;
             }
+        }
+    }
+
+    protected void clearDisplay() {
+        if (display == null) return;
+        for (int i = 0; i < display.length; i++) {
+            for (int j = 0; j < display[i].length; j++) {
+                display[i][j] = ' ';
+            }
+        }
+    }
+
+    protected void putString(int row, int col, String text) {
+        if (display == null) return;
+        for (int i = 0; i < text.length() && col + i < display[row].length; i++) {
+            display[row][col + i] = text.charAt(i);
         }
     }
 
@@ -152,12 +146,13 @@ public abstract class Console {
     }
 
     public void run() {
-       while (active) {
+        if (logger != null) logger.log("Console started");
+        while (active) {
             size.updateTerminalSize();
             checkDisplay();
             render();
             parseInput();
-       }
-            
+        }
+        if (logger != null) logger.log("Console stopped");
     }
 }
