@@ -30,7 +30,7 @@ public class AsciiTool {
     }
 
     public static void main(String[] args) {
-        String original = "Jack🐿";
+        String original = "Jack a";
         int[] asciiArray = stringToAscii(original);
         System.out.print("ASCII codes: ");
         for (int code : asciiArray) {

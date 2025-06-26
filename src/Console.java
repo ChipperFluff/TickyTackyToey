@@ -2,12 +2,14 @@ package src;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 public abstract class Console {
     protected InputStream in = System.in;
     protected PrintStream out = System.out;
     protected TerminalSize size = new TerminalSize();
+    protected int[][] display;
 
     private boolean active = true;
     private static final String BLACK_TEXT = "\u001B[30m";
@@ -19,6 +21,37 @@ public abstract class Console {
     public static final String LEFT = "LEFT";
     public static final String RIGHT = "RIGHT";
 
+    public Console() {
+        if (!System.getProperty("skipConsoleInit", "false").equals("true")) {
+            try {
+                String[] cmd = {
+                    "gnome-terminal",
+                    "--window-with-profile=TinyFont",
+                    "--",
+                    "java",
+                    "-DskipConsoleInit=true",
+                    "-cp",
+                    System.getProperty("java.class.path"),
+                    "Main"
+                };
+
+                Runtime.getRuntime().exec(cmd);
+
+                // Silence logs in the current console
+                System.setOut(new PrintStream(OutputStream.nullOutputStream()));
+                System.setErr(new PrintStream(OutputStream.nullOutputStream()));
+
+                System.exit(0);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Press Enter to exit...");
+                try { System.in.read(); } catch (IOException ex) {}
+                System.exit(1);
+            }
+        }
+    }
+
+
     protected void exit() {
         active = false;
     }
@@ -29,7 +62,7 @@ public abstract class Console {
     }
 
     private static void clear() {
-        System.out.print("\u001B[2J\u001B[H");
+        System.out.print("\u001B[H");
         System.out.flush();
     }
 
@@ -37,6 +70,22 @@ public abstract class Console {
     abstract protected void arrow_press(String direction);
     abstract protected void onKeyPress(int key, boolean isArrowKey);
     abstract protected void draw();
+
+    private void checkDisplay() {
+        final int CONSOLE_WIDTH = size.width;
+        final int CONSOLE_HEIGHT = size.height;
+
+        if (display != null && display.length == CONSOLE_HEIGHT && display[0].length == CONSOLE_WIDTH) {
+            return;
+        }
+
+        display = new int[CONSOLE_HEIGHT][CONSOLE_WIDTH];
+        for (int i = 0; i < CONSOLE_HEIGHT; i++) {
+            for (int j = 0; j < CONSOLE_WIDTH; j++) {
+            display[i][j] = 99; // 32;
+            }
+        }
+    }
 
     private boolean parseArrowKeys(int first) {
         if (first != 27) {
@@ -89,11 +138,24 @@ public abstract class Console {
         onKeyPress(input, arrowParseSuccess);
     }
 
+    private void render() {
+        clear();
+        draw();
+
+        for (int i = 0; i < size.height; i++) {
+            for (int j = 0; j < size.width; j++) {
+                out.print((char) display[i][j]);
+            }
+            out.println();
+        }
+        out.flush();
+    }
+
     public void run() {
        while (active) {
             size.updateTerminalSize();
-            clear();
-            draw();
+            checkDisplay();
+            render();
             parseInput();
        }
             

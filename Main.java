@@ -1,12 +1,17 @@
 import src.Game;
-import src.AsciiTool;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
-        AsciiTool.main(args);
-        return;
-        
-        Game game = new Game();
-        game.run();
+    public static void main(String[] args) {
+        try {
+            Game game = new Game();
+            game.run();
+        } catch (Exception e) {
+            System.err.println("=== ERROR OCCURRED ===");
+            e.printStackTrace();
+            System.err.println("\nPress Enter to exit...");
+            try {
+                System.in.read();
+            } catch (Exception ignored) {}
+        }
     }
 }
