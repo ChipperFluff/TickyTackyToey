@@ -1,12 +1,14 @@
 package src;
 
-public class Game extends Runtime {
+public class Game extends Console {
     public Game() {
         super();
     }
 
     protected void arrow_press(String direction) {
-        logger.log("Arrow pressed: " + direction);
+        if (logger != null) {
+            logger.log("Arrow pressed: " + direction);
+        }
     }
 
     protected void onKeyPress(int key, boolean isArrowKey) {
