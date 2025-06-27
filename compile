@@ -1,32 +1,39 @@
 #!/bin/bash
-
 set -e
 
+# Define structure
 SRC_DIR="src"
 OUT_DIR="out"
+CMP_DIR="cmp"
+ELF_DIR="elf"
+CPP_SRC="shell.cpp"
 MAIN_CLASS="Main"
-TEMP_MANIFEST="manifest.txt"
+JAR_NAME="tickitakytoe.jar"
+FINAL_ELF="tickitakytoe"
 
-echo "[INFO] Creating output directory..."
-mkdir -p "$OUT_DIR"
+# Create folders
+mkdir -p "$OUT_DIR" "$CMP_DIR" "$ELF_DIR"
 
-echo "[INFO] Compiling Java source files..."
-javac -d "$OUT_DIR" -cp "$SRC_DIR" "$SRC_DIR"/*.java
+echo "[1/6] Compiling Java..."
+find "$SRC_DIR" -name "*.java" > sources.txt
+javac -Xlint:none -d "$OUT_DIR" -cp "$SRC_DIR" @sources.txt Main.java
 
-echo "[INFO] Extracting version and filename from Main class..."
+echo "[2/6] Creating .jar..."
+echo "Main-Class: $MAIN_CLASS" > "$CMP_DIR/manifest.txt"
+jar cfm "$CMP_DIR/$JAR_NAME" "$CMP_DIR/manifest.txt" -C "$OUT_DIR" .
 
-VERSION=$(java -cp "$OUT_DIR" "$MAIN_CLASS" getVersionString 2>/dev/null || echo "0.0.0")
-FILENAME=$(java -cp "$OUT_DIR" "$MAIN_CLASS" getFileName 2>/dev/null || echo "tickitakytoe")
+echo "[3/6] Compiling C++ launcher..."
+g++ "$CPP_SRC" -o "$CMP_DIR/$FINAL_ELF"
 
-JAR_NAME="${FILENAME}-${VERSION}.jar"
+echo "[4/6] Appending .jar to ELF..."
+JARSIZE=$(stat -c%s "$CMP_DIR/$JAR_NAME")
+cat "$CMP_DIR/$JAR_NAME" >> "$CMP_DIR/$FINAL_ELF"
 
-echo "[INFO] Writing manifest..."
-echo "Main-Class: $MAIN_CLASS" > "$TEMP_MANIFEST"
+echo "[5/6] Adding marker and size..."
+echo -n "==JAR==\n" >> "$CMP_DIR/$FINAL_ELF"
+printf "$(printf '%08x' $JARSIZE)" | xxd -r -p >> "$CMP_DIR/$FINAL_ELF"
 
-echo "[INFO] Building JAR: $JAR_NAME"
-jar cfm "$JAR_NAME" "$TEMP_MANIFEST" -C "$OUT_DIR" .
+echo "[6/6] Moving to final folder: $ELF_DIR/"
+mv "$CMP_DIR/$FINAL_ELF" "$ELF_DIR/"
 
-echo "[INFO] Cleaning up..."
-rm -f "$TEMP_MANIFEST"
-
-echo "[SUCCESS] Created JAR: $JAR_NAME"
+echo "[✔] Done! Built: $ELF_DIR/$FINAL_ELF"
