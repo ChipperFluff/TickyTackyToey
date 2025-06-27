@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+
+SRC_DIR="src"
+OUT_DIR="out"
+MAIN_CLASS="Main"
+TEMP_MANIFEST="manifest.txt"
+
+echo "[INFO] Creating output directory..."
+mkdir -p "$OUT_DIR"
+
+echo "[INFO] Compiling Java source files..."
+javac -d "$OUT_DIR" -cp "$SRC_DIR" "$SRC_DIR"/*.java
+
+echo "[INFO] Extracting version and filename from Main class..."
+
+VERSION=$(java -cp "$OUT_DIR" "$MAIN_CLASS" getVersionString 2>/dev/null || echo "0.0.0")
+FILENAME=$(java -cp "$OUT_DIR" "$MAIN_CLASS" getFileName 2>/dev/null || echo "tickitakytoe")
+
+JAR_NAME="${FILENAME}-${VERSION}.jar"
+
+echo "[INFO] Writing manifest..."
+echo "Main-Class: $MAIN_CLASS" > "$TEMP_MANIFEST"
+
+echo "[INFO] Building JAR: $JAR_NAME"
+jar cfm "$JAR_NAME" "$TEMP_MANIFEST" -C "$OUT_DIR" .
+
+echo "[INFO] Cleaning up..."
+rm -f "$TEMP_MANIFEST"
+
+echo "[SUCCESS] Created JAR: $JAR_NAME"

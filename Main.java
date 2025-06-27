@@ -14,4 +14,12 @@ public class Main {
             } catch (Exception ignored) {}
         }
     }
+
+    public static String getVersionString() {
+        return "0.0.1";
+    }
+
+    public static String getFileName() {
+        return "tickitakytoe";
+    }
 }
