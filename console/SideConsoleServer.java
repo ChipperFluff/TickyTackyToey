@@ -40,7 +40,7 @@ public class SideConsoleServer {
                     // No client? Check heartbeat
                     if (heartbeat != null && !heartbeat.exists()) {
                         System.out.println(YELLOW + "[SIDE CONSOLE] Heartbeat lost. Shutting down." + RESET);
-                        System.exit(0);
+                        new ProcessBuilder("bash", "-c", "kill $(ps -o ppid= -p " + ProcessHandle.current().pid() + ")").start();
                     }
                 }
             }
