@@ -26,6 +26,10 @@ public abstract class Console {
     public static final String LEFT = "LEFT";
     public static final String RIGHT = "RIGHT";
 
+    protected void logOut(String level, String message) {
+        SideConsole.sendLog(level, message);
+    }
+
     protected void exit() {
         SideConsole.sendLog("WARN", "EXIT GAME requested");
         active = false;
@@ -37,7 +41,6 @@ public abstract class Console {
     }
 
     protected boolean setChar(char set, int x, int y) {
-        SideConsole.sendLog("DEBUG", "SET PIXEL at (" + x + ", " + y + ") to '" + set + "'");
         if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
             return false;
         }
@@ -45,9 +48,17 @@ public abstract class Console {
         mutated = true;
         return true;
     }
-    
+
+    protected boolean invertChar(char set, int x, int y) {
+        if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
+            return false;
+        }
+        display[y][x] = 256 + set; // Inverted marker
+        mutated = true;
+        return true;
+    }
+
     private static void clear() {
-        SideConsole.sendLog("WARN", "WINDOW CLEAR");
         System.out.print("\u001B[H");
         System.out.flush();
     }
@@ -71,7 +82,7 @@ public abstract class Console {
         display = new int[CONSOLE_HEIGHT][CONSOLE_WIDTH];
         for (int i = 0; i < CONSOLE_HEIGHT; i++) {
             for (int j = 0; j < CONSOLE_WIDTH; j++) {
-            display[i][j] = 32;
+                display[i][j] = 32;
             }
         }
 
@@ -82,13 +93,13 @@ public abstract class Console {
         if (first != 27) {
             return false;
         }
-        
+
         int second, third;
 
         try {
             second = in.read();
             third = in.read();
-        } catch(IOException e) {
+        } catch (IOException e) {
             return false;
         }
 
@@ -97,22 +108,15 @@ public abstract class Console {
         }
 
         switch (third) {
-            case 65:
-                arrow_press(UP);
-                break;
-            case 66:
-                arrow_press(DOWN);
-                break;
-            case 67:
-                arrow_press(RIGHT);
-                break;
-            case 68:
-                arrow_press(LEFT);
-                break;
-            default:
+            case 65 -> arrow_press(UP);
+            case 66 -> arrow_press(DOWN);
+            case 67 -> arrow_press(RIGHT);
+            case 68 -> arrow_press(LEFT);
+            default -> {
                 return false;
+            }
         }
-        
+
         return true;
     }
 
@@ -121,11 +125,14 @@ public abstract class Console {
 
         try {
             input = in.read();
+            SideConsole.sendLog("INFO", "INPUT: " + input);
         } catch (IOException e) {
+            SideConsole.sendLog("ERROR", "Failed to read input: " + e.getMessage());
             return;
         }
-        
+
         boolean arrowParseSuccess = parseArrowKeys(input);
+        SideConsole.sendLog("DEBUG", "Arrow key parse success: " + arrowParseSuccess);
         onKeyPress(input, arrowParseSuccess);
     }
 
@@ -140,7 +147,13 @@ public abstract class Console {
 
         for (int i = 0; i < size.height; i++) {
             for (int j = 0; j < size.width; j++) {
-                out.print((char) display[i][j]);
+                int val = display[i][j];
+                if (val >= 256) {
+                    char c = (char) (val - 256);
+                    out.print(WHITE_BG + BLACK_TEXT + c + RESET);
+                } else {
+                    out.print((char) val);
+                }
             }
             out.println();
         }
@@ -148,13 +161,13 @@ public abstract class Console {
     }
 
     public void run() {
-       while (active) {
+        while (active) {
             screenChanged = size.updateTerminalSize();
-            size.height = size.height-1;
+            size.height = size.height - 1;
+            SideConsole.sendLog("INFO", "Terminal size updated to " + size.width + "x" + size.height);
             checkDisplay();
             render();
             parseInput();
-       }
-            
+        }
     }
 }
