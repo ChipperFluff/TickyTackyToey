@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Define structure
 SRC_DIR="src"
 OUT_DIR="out"
 CMP_DIR="cmp"
@@ -9,31 +8,23 @@ ELF_DIR="elf"
 CPP_SRC="shell.cpp"
 MAIN_CLASS="Main"
 JAR_NAME="tickitakytoe.jar"
+HEADER_NAME="embedded_jar.h"
 FINAL_ELF="tickitakytoe"
 
-# Create folders
 mkdir -p "$OUT_DIR" "$CMP_DIR" "$ELF_DIR"
 
-echo "[1/6] Compiling Java..."
+echo "[1/5] Compiling Java..."
 find "$SRC_DIR" -name "*.java" > sources.txt
 javac -Xlint:none -d "$OUT_DIR" -cp "$SRC_DIR" @sources.txt Main.java
 
-echo "[2/6] Creating .jar..."
+echo "[2/5] Creating JAR..."
 echo "Main-Class: $MAIN_CLASS" > "$CMP_DIR/manifest.txt"
 jar cfm "$CMP_DIR/$JAR_NAME" "$CMP_DIR/manifest.txt" -C "$OUT_DIR" .
 
-echo "[3/6] Compiling C++ launcher..."
-g++ "$CPP_SRC" -o "$CMP_DIR/$FINAL_ELF"
+echo "[3/5] Embedding JAR as C header..."
+xxd -i "$CMP_DIR/$JAR_NAME" > "$CMP_DIR/$HEADER_NAME"
 
-echo "[4/6] Appending .jar to ELF..."
-JARSIZE=$(stat -c%s "$CMP_DIR/$JAR_NAME")
-cat "$CMP_DIR/$JAR_NAME" >> "$CMP_DIR/$FINAL_ELF"
+echo "[4/5] Compiling ELF with embedded JAR..."
+g++ "$CPP_SRC" -o "$ELF_DIR/$FINAL_ELF" -I"$CMP_DIR"
 
-echo "[5/6] Adding marker and size..."
-echo -n "==JAR==\n" >> "$CMP_DIR/$FINAL_ELF"
-printf "$(printf '%08x' $JARSIZE)" | xxd -r -p >> "$CMP_DIR/$FINAL_ELF"
-
-echo "[6/6] Moving to final folder: $ELF_DIR/"
-mv "$CMP_DIR/$FINAL_ELF" "$ELF_DIR/"
-
-echo "[✔] Done! Built: $ELF_DIR/$FINAL_ELF"
+echo "[5/5] Done! ELF: $ELF_DIR/$FINAL_ELF (JAR memory embedded)"

@@ -5,7 +5,7 @@ trap "stty sane" EXIT
 mkdir -p out
 
 # Compile using javac
-find src -name "*.java" > sources.txt
+find . -name "*.java" > sources.txt
 javac -Xlint:none -d out -cp src @sources.txt Main.java || exit 1
 
 # Run

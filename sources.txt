@@ -1,4 +1,7 @@
-src/TerminalSize.java
-src/Console.java
-src/AsciiTool.java
-src/Game.java
+./console/SideConsole.java
+./console/SideConsoleServer.java
+./src/TerminalSize.java
+./src/Console.java
+./src/AsciiTool.java
+./src/Game.java
+./Main.java
