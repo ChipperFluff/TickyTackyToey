@@ -1,8 +1,9 @@
 package src;
 
+import console.SideConsole;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 public abstract class Console {
@@ -12,6 +13,10 @@ public abstract class Console {
     protected int[][] display;
 
     private boolean active = true;
+    private boolean initial_render = true;
+    private boolean mutated = true;
+    private boolean screenChanged = true;
+
     private static final String BLACK_TEXT = "\u001B[30m";
     private static final String WHITE_BG = "\u001B[47m";
     private static final String RESET = "\u001B[0m";
@@ -21,38 +26,8 @@ public abstract class Console {
     public static final String LEFT = "LEFT";
     public static final String RIGHT = "RIGHT";
 
-    public Console() {
-        if (!System.getProperty("skipConsoleInit", "false").equals("true")) {
-            try {
-                String[] cmd = {
-                    "gnome-terminal",
-                    "--window-with-profile=TinyFont",
-                    "--",
-                    "java",
-                    "-DskipConsoleInit=true",
-                    "-cp",
-                    System.getProperty("java.class.path"),
-                    "Main"
-                };
-
-                Runtime.getRuntime().exec(cmd);
-
-                // Silence logs in the current console
-                System.setOut(new PrintStream(OutputStream.nullOutputStream()));
-                System.setErr(new PrintStream(OutputStream.nullOutputStream()));
-
-                System.exit(0);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Press Enter to exit...");
-                try { System.in.read(); } catch (IOException ex) {}
-                System.exit(1);
-            }
-        }
-    }
-
-
     protected void exit() {
+        SideConsole.sendLog("WARN", "EXIT GAME requested");
         active = false;
     }
 
@@ -61,17 +36,31 @@ public abstract class Console {
         System.out.flush();
     }
 
+    protected boolean setChar(char set, int x, int y) {
+        SideConsole.sendLog("DEBUG", "SET PIXEL at (" + x + ", " + y + ") to '" + set + "'");
+        if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
+            return false;
+        }
+        display[y][x] = set;
+        mutated = true;
+        return true;
+    }
+    
     private static void clear() {
+        SideConsole.sendLog("WARN", "WINDOW CLEAR");
         System.out.print("\u001B[H");
         System.out.flush();
     }
 
-
     abstract protected void arrow_press(String direction);
     abstract protected void onKeyPress(int key, boolean isArrowKey);
-    abstract protected void draw();
+    abstract protected void draw(boolean init);
 
     private void checkDisplay() {
+        if (!screenChanged) {
+            return;
+        }
+
         final int CONSOLE_WIDTH = size.width;
         final int CONSOLE_HEIGHT = size.height;
 
@@ -82,9 +71,11 @@ public abstract class Console {
         display = new int[CONSOLE_HEIGHT][CONSOLE_WIDTH];
         for (int i = 0; i < CONSOLE_HEIGHT; i++) {
             for (int j = 0; j < CONSOLE_WIDTH; j++) {
-            display[i][j] = 99; // 32;
+            display[i][j] = 32;
             }
         }
+
+        mutated = true;
     }
 
     private boolean parseArrowKeys(int first) {
@@ -139,8 +130,13 @@ public abstract class Console {
     }
 
     private void render() {
+        draw(initial_render);
+        initial_render = false;
+        if (!mutated) {
+            return;
+        }
+
         clear();
-        draw();
 
         for (int i = 0; i < size.height; i++) {
             for (int j = 0; j < size.width; j++) {
@@ -153,7 +149,8 @@ public abstract class Console {
 
     public void run() {
        while (active) {
-            size.updateTerminalSize();
+            screenChanged = size.updateTerminalSize();
+            size.height = size.height-1;
             checkDisplay();
             render();
             parseInput();

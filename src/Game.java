@@ -1,16 +1,17 @@
 package src;
 
 public class Game extends Console {
-    public Game() {
-        super();
-    }
-
     protected void arrow_press(String direction) {
     }
 
     protected void onKeyPress(int key, boolean isArrowKey) {
     }
 
-    protected void draw() {
+    protected void draw(boolean init) {
+        if (!init) {
+            return;
+        }
+        
+        setChar('O', 10, 10);
     }
 }
